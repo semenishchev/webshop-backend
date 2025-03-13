@@ -16,6 +16,7 @@ public class UserSession extends PanacheEntity {
     @ManyToOne
     public User user;
     public Date expiresAt;
+    public String ipAddress;
 
     public boolean hasExpired() {
         return expiresAt.before(new Date());

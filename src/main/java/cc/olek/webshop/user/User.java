@@ -4,6 +4,7 @@ import cc.olek.webshop.auth.UserSession;
 import cc.olek.webshop.entity.WebshopEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;

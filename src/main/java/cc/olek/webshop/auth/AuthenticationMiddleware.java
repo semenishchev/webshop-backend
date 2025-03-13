@@ -19,7 +19,7 @@ import java.lang.reflect.Method;
  */
 @Provider
 @Priority(Priorities.AUTHENTICATION)
-public class SessionMiddleware implements ContainerRequestFilter {
+public class AuthenticationMiddleware implements ContainerRequestFilter {
 
     @Inject
     UserContext userContext;
@@ -44,10 +44,13 @@ public class SessionMiddleware implements ContainerRequestFilter {
             return;
         }
 
+        if(auth != null && auth.startsWith("Basic ")) {
+            auth = auth.substring("Basic ".length());
+        }
+
         UserSession session = UserSession.find("sessionText", auth).firstResult();
         if(session == null) {
             if(required) context.abortWith(Response.status(401).build());
-            userContext.setUser(null);
             return;
         }
 
