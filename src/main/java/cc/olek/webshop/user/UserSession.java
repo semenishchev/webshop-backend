@@ -1,19 +1,20 @@
-package cc.olek.webshop.auth;
+package cc.olek.webshop.user;
 
-import cc.olek.webshop.user.User;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import jakarta.persistence.Cacheable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.*;
 
 import java.util.Date;
 
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class UserSession extends PanacheEntity {
     public String sessionText;
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.CASCADE)
     public User user;
     public Date expiresAt;
     public String ipAddress;

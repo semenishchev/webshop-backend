@@ -1,6 +1,5 @@
-package cc.olek.webshop.auth;
+package cc.olek.webshop.user;
 
-import cc.olek.webshop.user.User;
 import jakarta.enterprise.context.RequestScoped;
 
 @RequestScoped

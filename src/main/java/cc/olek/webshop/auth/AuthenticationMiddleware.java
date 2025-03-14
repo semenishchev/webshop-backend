@@ -1,17 +1,22 @@
 package cc.olek.webshop.auth;
 
+import cc.olek.webshop.user.UserContext;
+import cc.olek.webshop.user.UserSession;
 import io.quarkus.security.Authenticated;
+import io.vertx.core.http.HttpServerRequest;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * Middleware to authenticate users with Authentication header into API. This header will be passed by API users, including frontend.
@@ -27,6 +32,12 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
     @Inject
     ResourceInfo resourceInfo;
 
+    @Inject
+    AuthenticationService authenticationService;
+
+    @Context
+    HttpServerRequest request;
+
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
         Method method = resourceInfo.getResourceMethod();
@@ -40,7 +51,7 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
 
         String auth = context.getHeaderString("Authorization");
         if(auth == null && required) {
-            context.abortWith(Response.status(401).build());
+            context.abortWith(Response.status(401).entity("No auth header").build());
             return;
         }
 
@@ -48,10 +59,15 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
             auth = auth.substring("Basic ".length());
         }
 
-        UserSession session = UserSession.find("sessionText", auth).firstResult();
+        UserSession session = authenticationService.findSession(auth);
         if(session == null) {
             if(required) context.abortWith(Response.status(401).build());
             return;
+        }
+
+        String currentIp = request.remoteAddress().host();
+        if(!Objects.equals(session.ipAddress, currentIp)) {
+            authenticationService.updateIpAddress(session, currentIp);
         }
 
         userContext.setUser(session.user);

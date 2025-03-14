@@ -4,4 +4,6 @@ public interface UserService {
     User createUser(String email, String password);
     User findUserById(long id);
     User findUserByEmail(String email);
+
+    void saveUser(User actionOn);
 }

@@ -1,13 +1,14 @@
 package cc.olek.webshop.user;
 
-import cc.olek.webshop.auth.UserContext;
 import io.quarkus.security.Authenticated;
+import io.quarkus.security.UnauthorizedException;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
-@Path("/user")
+@Path("/user/{id}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Authenticated
@@ -20,17 +21,26 @@ public class UserResource {
     UserService userService;
 
     @GET
-    @Path("/me")
-    public User me() {
-        return userContext.getUser();
+    public User getUser(@PathParam("id") String id) {
+        return parse(userContext.getUser(), id);
     }
 
-    @GET
-    @Path("/user/{id}")
-    public User getUser(@PathParam("id") String id) {
-        try {
-            return userService.findUserById(Long.parseLong(id));
-        } catch (NumberFormatException ignored) {}
-        return userService.findUserByEmail(id);
+    @PATCH
+    @Path("/update")
+    public Response updateUser(@PathParam("id") String id, UserProfile userProfile) {
+        User actionOn = parse(userContext.getUser(), id);
+        UserProfile existing = actionOn.getProfile();
+        existing.merge(userProfile);
+        userService.saveUser(actionOn);
+        return Response.noContent().build();
+    }
+
+    private static User parse(User executor, String id) {
+        if(id.equalsIgnoreCase("me")) {
+            return executor;
+        }
+
+        // todo: permission lookup
+        throw new UnauthorizedException();
     }
 }

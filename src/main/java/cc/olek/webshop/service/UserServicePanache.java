@@ -1,9 +1,7 @@
 package cc.olek.webshop.service;
 
-import cc.olek.webshop.auth.UserSession;
 import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserService;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
@@ -13,7 +11,7 @@ public class UserServicePanache implements UserService {
     @Override
     public User createUser(String email, String password) {
         User user = new User();
-        user.email = email;
+        user.setEmail(email);
         user.setPassword(password);
         user.persist();
         return user;
@@ -27,5 +25,11 @@ public class UserServicePanache implements UserService {
     @Override
     public User findUserByEmail(String email) {
         return User.find("email", email).firstResult();
+    }
+
+    @Override
+    @Transactional
+    public void saveUser(User actionOn) {
+        User.getEntityManager().merge(actionOn);
     }
 }

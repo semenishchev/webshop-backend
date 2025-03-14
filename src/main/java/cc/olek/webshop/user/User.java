@@ -1,34 +1,22 @@
 package cc.olek.webshop.user;
 
-import cc.olek.webshop.auth.UserSession;
 import cc.olek.webshop.entity.WebshopEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.transaction.Transactional;
+import jakarta.persistence.*;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.mindrot.jbcrypt.BCrypt;
 
-import java.util.List;
-
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Table(name = "Users")
+@Table(name = "Users", indexes = { @Index(unique = true, columnList = "email") })
 public class User extends WebshopEntity {
-    public String email;
-    public String fullName;
+    private String email;
+    @Embedded
+    private UserProfile profile;
 
     @JsonIgnore
-    public String hashedPassword;
-
-    @OneToMany
-    @Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
-    @JsonIgnore
-    public List<UserSession> userSessions;
+    private String hashedPassword;
 
     public boolean verifyPassword(String password) {
         return BCrypt.checkpw(password, this.hashedPassword);
@@ -36,5 +24,20 @@ public class User extends WebshopEntity {
 
     public void setPassword(String password) {
         this.hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public UserProfile getProfile() {
+        if(this.profile == null) {
+            return this.profile = new UserProfile();
+        }
+        return profile;
     }
 }
