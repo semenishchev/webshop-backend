@@ -1,6 +1,7 @@
 package cc.olek.webshop.user;
 
 import cc.olek.webshop.entity.WebshopEntity;
+import cc.olek.webshop.shop.model.Cart;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Cache;
@@ -14,6 +15,9 @@ public class User extends WebshopEntity {
     private String email;
     @Embedded
     private UserProfile profile;
+
+    @Embedded
+    private Cart cart;
 
     @JsonIgnore
     private String hashedPassword;
@@ -39,5 +43,12 @@ public class User extends WebshopEntity {
             return this.profile = new UserProfile();
         }
         return profile;
+    }
+
+    public Cart getCart() {
+        if(this.cart == null) {
+            return this.cart = new Cart();
+        }
+        return cart;
     }
 }
