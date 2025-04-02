@@ -7,6 +7,8 @@ import cc.olek.webshop.shop.model.ProductSorting;
 import java.util.List;
 
 public interface ProductService {
+    ProductCategory getCategory(String categoryName);
+
     int calculateAverageRating(Product product);
     List<Product> getProductsByCategory(ProductCategory category, ProductSorting sorting, int begin, int limit);
     void registerNewProduct(Product product);

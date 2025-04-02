@@ -1,5 +1,7 @@
 package cc.olek.webshop.auth;
 
+import cc.olek.webshop.user.Permission;
+
 import java.lang.annotation.*;
 
 /**
@@ -10,6 +12,6 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface Permission {
-    String value();
+public @interface PermissionRequired {
+    Permission value();
 }

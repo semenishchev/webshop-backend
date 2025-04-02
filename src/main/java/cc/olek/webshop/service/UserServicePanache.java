@@ -32,4 +32,9 @@ public class UserServicePanache implements UserService {
     public void saveUser(User actionOn) {
         User.getEntityManager().merge(actionOn);
     }
+
+    @Override
+    public long getTotalUsers() {
+        return User.count();
+    }
 }

@@ -1,0 +1,17 @@
+<enunciate>
+    <api-classes>
+        <include pattern="cc.olek.**Resource.java" />
+    </api-classes>
+
+    <modules>
+        <module name="jackson" />
+        <module name="jaxrs" />
+        <module name="swagger"/>
+        <module name="html"/>
+    </modules>
+
+    <html>
+        <title>Olek webshop API docs</title>
+        <outputDir>${projectDir}/build/enunciate-docs</outputDir>
+    </html>
+</enunciate>

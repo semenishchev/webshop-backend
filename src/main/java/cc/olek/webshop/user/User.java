@@ -8,11 +8,15 @@ import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Table(name = "Users", indexes = { @Index(unique = true, columnList = "email") })
+@Table(name = "User", indexes = { @Index(unique = true, columnList = "email") })
 public class User extends WebshopEntity {
     private String email;
+
     @Embedded
     private UserProfile profile;
 
@@ -21,6 +25,17 @@ public class User extends WebshopEntity {
 
     @JsonIgnore
     private String hashedPassword;
+
+    @JsonIgnore
+    private String twoFactorSecret;
+
+    private boolean isSuperuser = false;
+
+    @ElementCollection
+    @Enumerated(EnumType.ORDINAL)
+    @CollectionTable(name = "UserPermission", joinColumns = @JoinColumn(name = "userId"))
+    @Column(name = "permission")
+    private Set<Permission> permissions = new HashSet<>();
 
     public boolean verifyPassword(String password) {
         return BCrypt.checkpw(password, this.hashedPassword);
@@ -50,5 +65,22 @@ public class User extends WebshopEntity {
             return this.cart = new Cart();
         }
         return cart;
+    }
+
+    public boolean hasPermission(Permission permission) {
+        if(this.isSuperuser) return true;
+        return this.permissions.contains(permission);
+    }
+
+    public void setSuperuser(boolean flag) {
+        this.isSuperuser = true;
+    }
+
+    public String getTwoFactorSecret() {
+        return twoFactorSecret;
+    }
+
+    public void setTwoFactorSecret(String twoFactorSecret) {
+        this.twoFactorSecret = twoFactorSecret;
     }
 }
