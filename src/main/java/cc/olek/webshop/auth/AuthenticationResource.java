@@ -12,8 +12,13 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Optional;
 
 @Path("/auth")
@@ -28,16 +33,33 @@ public class AuthenticationResource {
     @Inject
     UserService userService;
 
+    @ConfigProperty(name = "api.domain")
+    String domain;
+
     @POST
     @Path("/login")
     @Produces(MediaType.TEXT_PLAIN)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(AuthenticationData data) {
-        UserSession session = authenticationService.authenticate(data.email, data.password);
+        UserSession session = authenticationService.authenticate(data.isBrowserSession, data.email, data.password, data.toptPassword.orElse(null));
         if(session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).build();
+            return Response.status(Response.Status.UNAUTHORIZED).entity("TOPT").build();
         }
-        return Response.ok().entity(session.sessionText).build();
+        Response.ResponseBuilder response = Response.ok().entity(session.sessionText);
+        if(data.isBrowserSession) {
+            boolean localhost = domain.equals("localhost");
+            response.cookie(
+                new NewCookie.Builder("ws-session_id")
+                    .expiry(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)))
+                    .httpOnly(true)
+                    .secure(true)
+                    .comment("Session")
+                    .sameSite(localhost ? NewCookie.SameSite.NONE : NewCookie.SameSite.STRICT)
+                    .domain(localhost ? "localhost" : "." + domain)
+                    .build()
+            );
+        }
+        return response.build();
     }
 
     @POST
@@ -65,5 +87,5 @@ public class AuthenticationResource {
         return Response.ok().build();
     }
 
-    public record AuthenticationData(String email, String password, Optional<String> toptPassword) {}
+    public record AuthenticationData(String email, boolean isBrowserSession, String password, Optional<String> toptPassword) {}
 }

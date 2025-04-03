@@ -42,13 +42,39 @@ public class AuthServicePanache implements AuthenticationService {
 
     @Override
     @Transactional
-    public UserSession authenticate(String email, String password) {
-        return doAuthenticate(email, password, null);
-    }
+    public UserSession authenticate(boolean doubleAuth, String email, String password, String twoFactorCode) {
+        User user = userService.findUserByEmail(email);
+        // return null to give out generic unauthorised message
+        if (user == null) {
+            throw new UnauthorizedException("Invalid credentials");
+        }
+        if (!user.verifyPassword(password)) {
+            throw new UnauthorizedException("Invalid credentials");
+        }
+        if (UserSession.count("user = ?1 and expired = false", user) >= config.maxSessionsPerUser()) {
+            throw new UnauthorizedException("Too many sessions per User");
+        }
+        String usedIpAddr = request.remoteAddress().host();
+        if (UserSession.count("ipAddress = ?1 and expired = false", usedIpAddr) >= config.maxSessionsPerIp()) {
+            throw new UnauthorizedException("Too many sessions per IP");
+        }
 
-    @Override
-    public UserSession authenticate(String email, String password, String twoFactorCode) {
-        return doAuthenticate(email, password, twoFactorCode);
+        checker: if(user.getTwoFactorSecret() != null) {
+            if(twoFactorCode == null) return null;
+            if(twoFactorService.isValid(user, twoFactorCode)) break checker;
+            throw new ForbiddenException();
+        }
+
+        UserSession session = new UserSession();
+        session.user = user;
+        session.sessionText = UUID.randomUUID().toString();
+        if(doubleAuth) {
+            session.cookieSession = UUID.randomUUID().toString() + UUID.randomUUID(); // its random enough
+        }
+        session.expiresAt = Date.from(Instant.now().plus(30, ChronoUnit.DAYS));
+        session.ipAddress = usedIpAddr;
+        session.persist();
+        return session;
     }
 
     @Override
@@ -76,36 +102,8 @@ public class AuthServicePanache implements AuthenticationService {
         return twoFactorService.isValidRaw(data.secret(), code);
     }
 
-    private UserSession doAuthenticate(String email, String password, String twoFactorCode) {
-        User user = userService.findUserByEmail(email);
-        // return null to give out generic unauthorised message
-        if (user == null) {
-            throw new UnauthorizedException("Invalid credentials");
-        }
-        if (!user.verifyPassword(password)) {
-            throw new UnauthorizedException("Invalid credentials");
-        }
-        if (UserSession.count("user = ?1 and expired = false", user) >= config.maxSessionsPerUser()) {
-            throw new UnauthorizedException("Too many sessions per User");
-        }
-        String usedIpAddr = request.remoteAddress().host();
-        if (UserSession.count("ipAddress = ?1 and expired = false", usedIpAddr) >= config.maxSessionsPerIp()) {
-            throw new UnauthorizedException("Too many sessions per IP");
-        }
+    private UserSession doAuthenticate(boolean doubleAuth, String email, String password, String twoFactorCode) {
 
-        checker: if(user.getTwoFactorSecret() != null) {
-            if(twoFactorCode == null) return null;
-            if(twoFactorService.isValid(user, twoFactorCode)) break checker;
-            throw new ForbiddenException();
-        }
-
-        UserSession session = new UserSession();
-        session.user = user;
-        session.sessionText = UUID.randomUUID().toString();
-        session.expiresAt = Date.from(Instant.now().plus(30, ChronoUnit.DAYS));
-        session.ipAddress = usedIpAddr;
-        session.persist();
-        return session;
     }
 
     @Override

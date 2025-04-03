@@ -15,6 +15,7 @@ import java.util.Date;
 @Table(indexes = @Index(name = "sessionIndex", columnList = "sessionText", unique = true))
 public class UserSession extends PanacheEntity {
     public String sessionText;
+    public String cookieSession; // only used for browser clients
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
     public User user;

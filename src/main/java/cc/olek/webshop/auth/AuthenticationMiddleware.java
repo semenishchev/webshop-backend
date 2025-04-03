@@ -11,6 +11,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
@@ -63,6 +64,18 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
         if(session == null) {
             if(required) context.abortWith(Response.status(401).build());
             return;
+        }
+
+        if(session.cookieSession != null) {
+            Cookie sessionId = context.getCookies().get("ws-session_id");
+            if(sessionId == null) {
+                context.abortWith(Response.status(401).build());
+                return;
+            }
+            if(!sessionId.getValue().equals(session.cookieSession)) {
+                context.abortWith(Response.status(403).build());
+                return;
+            }
         }
 
         String currentIp = request.remoteAddress().host();

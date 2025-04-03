@@ -6,23 +6,17 @@ import cc.olek.webshop.user.UserSession;
 
 public interface AuthenticationService {
     /**
-     * Authenticates with a session
-     * @param email Email of the user
-     * @param password Password
-     * @return Null if the authentication method didn't work (requires 2fa)
-     * @throws io.quarkus.security.UnauthorizedException If credentials don't match
-     */
-    UserSession authenticate(String email, String password);
-
-    /**
-     * Authenticates with a 2fa
+     * Authenticates a user
+     * Double auth parameter means it will generate a cookie and a session as 2 separate texts. Authentication will consist of API server receiving both params.
+     * Should be true if request is made from the browser and false if frontend is some other kind of application
+     * @param doubleAuth Enables duplicate verification for a cookie
      * @param email Email
      * @param password Password
-     * @param twoFactor Current code
+     * @param twoFactor 2-factor code if present. If not present and required, will return null
      * @return UserSession if everything is valid, null if 2fa code is invalid
      * @throws io.quarkus.security.UnauthorizedException If credentials don't match
      */
-    UserSession authenticate(String email, String password, String twoFactor);
+    UserSession authenticate(boolean doubleAuth, String email, String password, String twoFactor);
     TwoFactorService.InitiationData initiateTwoFactorAuthentication(User user);
     boolean confirmTwoFactor(User user, String code);
     void changePassword(User user, String newPassword, String twoFactorCode);
