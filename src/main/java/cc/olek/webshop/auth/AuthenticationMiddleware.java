@@ -16,8 +16,9 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Middleware to authenticate users with Authentication header into API. This header will be passed by API users, including frontend.
@@ -44,19 +45,18 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
         Method method = resourceInfo.getResourceMethod();
 
         boolean required = method != null && method.isAnnotationPresent(Authenticated.class);
-
         Class<?> caller = resourceInfo.getResourceClass();
         if(caller != null && caller.isAnnotationPresent(Authenticated.class)) {
             required = true;
         }
 
         String auth = context.getHeaderString("Authorization");
-        if(auth == null && required) {
-            context.abortWith(Response.status(401).entity("No auth header").build());
+        if(auth == null) {
+            if(required) context.abortWith(Response.status(401).entity("No auth header").build());
             return;
         }
 
-        if(auth != null && auth.startsWith("Basic ")) {
+        if(auth.startsWith("Basic ")) {
             auth = auth.substring("Basic ".length());
         }
 
@@ -66,13 +66,13 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
             return;
         }
 
-        if(session.cookieSession != null) {
+        if(session.isCookiePresent()) {
             Cookie sessionId = context.getCookies().get("ws-session_id");
             if(sessionId == null) {
                 context.abortWith(Response.status(401).build());
                 return;
             }
-            if(!sessionId.getValue().equals(session.cookieSession)) {
+            if(!session.isValidCookie(sessionId.getValue())) {
                 context.abortWith(Response.status(403).build());
                 return;
             }

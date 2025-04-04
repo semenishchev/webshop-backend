@@ -23,6 +23,7 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation("org.apache.maven:maven-model:3.8.4")
     implementation("io.quarkus:quarkus-redis-cache")
+    implementation("io.quarkus:quarkus-redis-client")
     implementation("io.quarkus:quarkus-cache")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-jdbc-h2")

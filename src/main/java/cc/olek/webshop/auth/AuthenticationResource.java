@@ -5,7 +5,6 @@ import cc.olek.webshop.user.UserService;
 import cc.olek.webshop.user.UserSession;
 import io.quarkus.security.Authenticated;
 import io.smallrye.common.annotation.RunOnVirtualThread;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -26,7 +25,7 @@ import java.util.Optional;
 public class AuthenticationResource {
 
     @Inject
-    Instance<UserContext> context;
+    UserContext context;
 
     @Inject
     AuthenticationService authenticationService;
@@ -79,7 +78,7 @@ public class AuthenticationResource {
     @Path("/logout")
     @Authenticated
     public Response logout() {
-        UserSession session = context.get().getSession();
+        UserSession session = context.getSession();
         if(session == null) {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }

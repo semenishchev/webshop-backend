@@ -12,7 +12,12 @@ import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import dev.samstevens.totp.util.Utils;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.keys.KeyCommands;
+import io.quarkus.redis.datasource.value.SetArgs;
+import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.List;
 
@@ -24,6 +29,11 @@ public class TwoFactorService {
     private final SecretGenerator secretGenerator = new DefaultSecretGenerator(128);
     private final RecoveryCodeGenerator recoveryCodeGenerator = new RecoveryCodeGenerator();
     private final QrGenerator qrGenerator = new ZxingPngQrGenerator();
+
+    @Inject
+    RedisDataSource redisClient;
+    private ValueCommands<String, InitiationData> cache = redisClient.value(InitiationData.class);;
+    private KeyCommands<String> cacheKeys = redisClient.key();
 
     public boolean isValid(User user, String code) {
         String secret = user.getTwoFactorSecret();
@@ -66,7 +76,17 @@ public class TwoFactorService {
         return List.of(recoveryCodeGenerator.generateCodes(16));
     }
 
-    public record InitiationData(String secret, String qrCode) {
-
+    public void saveToInitCache(User user, InitiationData initiationData, int ttl) {
+        cache.set("topt_confirmation_" + user.getEmail(), initiationData, new SetArgs().ex(ttl));
     }
+
+    public InitiationData getCached(User user) {
+        return cache.get("topt_confirmation_" + user.getEmail());
+    }
+
+    public void removeCached(User user) {
+        cacheKeys.del("topt_confirmation_" + user.getEmail());
+    }
+
+    public record InitiationData(String secret, String qrCode) {}
 }

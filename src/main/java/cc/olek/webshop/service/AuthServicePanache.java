@@ -7,7 +7,6 @@ import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserService;
 import dev.samstevens.totp.exceptions.QrGenerationException;
 import io.quarkus.logging.Log;
-import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.vertx.core.http.HttpServerRequest;
@@ -36,9 +35,6 @@ public class AuthServicePanache implements AuthenticationService {
 
     @Inject
     TwoFactorService twoFactorService;
-
-    @Inject
-    RedisDataSource redisClient;
 
     @Override
     @Transactional
@@ -69,7 +65,7 @@ public class AuthServicePanache implements AuthenticationService {
         session.user = user;
         session.sessionText = UUID.randomUUID().toString();
         if(doubleAuth) {
-            session.cookieSession = UUID.randomUUID().toString() + UUID.randomUUID(); // its random enough
+            session.setCookieSession(UUID.randomUUID().toString() + UUID.randomUUID()); // its random enough
         }
         session.expiresAt = Date.from(Instant.now().plus(30, ChronoUnit.DAYS));
         session.ipAddress = usedIpAddr;
@@ -89,21 +85,28 @@ public class AuthServicePanache implements AuthenticationService {
             Log.errorf(e,"Failed to generate a two factor secret for user %i %s", user.id, user.getEmail());
             throw new ServerErrorException("Failed to generate TOPT data for you", 500);
         }
-        redisClient.value(TwoFactorService.InitiationData.class).set(user.getEmail(), initiationData);
+        twoFactorService.saveToInitCache(user, initiationData, 120); // seconds
         return initiationData;
     }
 
     @Override
+    public void terminateTwoFactorInitiation(User user) {
+        twoFactorService.removeCached(user);
+    }
+
+    @Override
     public boolean confirmTwoFactor(User user, String code) {
-        TwoFactorService.InitiationData data = redisClient.value(TwoFactorService.InitiationData.class).get(user.getEmail());
+        TwoFactorService.InitiationData data = twoFactorService.getCached(user);
         if(data == null) {
             throw new NotFoundException();
         }
-        return twoFactorService.isValidRaw(data.secret(), code);
-    }
-
-    private UserSession doAuthenticate(boolean doubleAuth, String email, String password, String twoFactorCode) {
-
+        boolean flag = twoFactorService.isValidRaw(data.secret(), code);
+        if(flag) {
+            user.setTwoFactorSecret(data.secret());
+            twoFactorService.removeCached(user);
+            userService.saveUser(user);
+        }
+        return flag;
     }
 
     @Override

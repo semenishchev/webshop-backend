@@ -18,6 +18,7 @@ public interface AuthenticationService {
      */
     UserSession authenticate(boolean doubleAuth, String email, String password, String twoFactor);
     TwoFactorService.InitiationData initiateTwoFactorAuthentication(User user);
+    void terminateTwoFactorInitiation(User user);
     boolean confirmTwoFactor(User user, String code);
     void changePassword(User user, String newPassword, String twoFactorCode);
     void logout(UserSession session);
