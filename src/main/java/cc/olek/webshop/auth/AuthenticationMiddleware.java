@@ -2,6 +2,7 @@ package cc.olek.webshop.auth;
 
 import cc.olek.webshop.user.UserContext;
 import cc.olek.webshop.user.UserSession;
+import cc.olek.webshop.util.HttpError;
 import io.quarkus.security.Authenticated;
 import io.vertx.core.http.HttpServerRequest;
 import jakarta.annotation.Priority;
@@ -16,7 +17,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -52,7 +52,7 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
 
         String auth = context.getHeaderString("Authorization");
         if(auth == null) {
-            if(required) context.abortWith(Response.status(401).entity("No auth header").build());
+            if(required) context.abortWith(HttpError.json(401, "No auth header"));
             return;
         }
 
@@ -62,18 +62,18 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
 
         UserSession session = authenticationService.findSession(auth);
         if(session == null) {
-            if(required) context.abortWith(Response.status(401).build());
+            if(required) context.abortWith(HttpError.json(401, "Session not found"));
             return;
         }
 
         if(session.isCookiePresent()) {
             Cookie sessionId = context.getCookies().get("ws-session_id");
             if(sessionId == null) {
-                context.abortWith(Response.status(401).build());
+                context.abortWith(HttpError.json(401, "Session cookie not found"));
                 return;
             }
             if(!session.isValidCookie(sessionId.getValue())) {
-                context.abortWith(Response.status(403).build());
+                context.abortWith(HttpError.json(401, "Invalid session cookie"));
                 return;
             }
         }

@@ -32,8 +32,6 @@ public class TwoFactorService {
 
     @Inject
     RedisDataSource redisClient;
-    private ValueCommands<String, InitiationData> cache = redisClient.value(InitiationData.class);;
-    private KeyCommands<String> cacheKeys = redisClient.key();
 
     public boolean isValid(User user, String code) {
         String secret = user.getTwoFactorSecret();
@@ -77,15 +75,15 @@ public class TwoFactorService {
     }
 
     public void saveToInitCache(User user, InitiationData initiationData, int ttl) {
-        cache.set("topt_confirmation_" + user.getEmail(), initiationData, new SetArgs().ex(ttl));
+        redisClient.value(InitiationData.class).set("topt_confirmation_" + user.getEmail(), initiationData, new SetArgs().ex(ttl));
     }
 
     public InitiationData getCached(User user) {
-        return cache.get("topt_confirmation_" + user.getEmail());
+        return redisClient.value(InitiationData.class).get("topt_confirmation_" + user.getEmail());
     }
 
     public void removeCached(User user) {
-        cacheKeys.del("topt_confirmation_" + user.getEmail());
+        redisClient.key().del("topt_confirmation_" + user.getEmail());
     }
 
     public record InitiationData(String secret, String qrCode) {}

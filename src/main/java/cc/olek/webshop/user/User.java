@@ -13,8 +13,9 @@ import java.util.Set;
 
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Table(name = "User", indexes = { @Index(unique = true, columnList = "email") })
+@Table(name = "RegisteredUser", indexes = { @Index(unique = true, columnList = "email") }) // RegisteredUser because User is a postgres keyword
 public class User extends WebshopEntity {
+    @Column(length = 50)
     private String email;
 
     @Embedded
@@ -27,6 +28,7 @@ public class User extends WebshopEntity {
     private String hashedPassword;
 
     @JsonIgnore
+    @Column(length = 128)
     private String twoFactorSecret;
 
     private boolean isSuperuser = false;

@@ -6,5 +6,5 @@ import io.smallrye.config.ConfigMapping;
 public interface StripeConfig {
     String apiKey();
     String apiSecret();
-    String getReturnUrl();
+    String returnUrl();
 }

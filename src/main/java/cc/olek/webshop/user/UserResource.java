@@ -21,12 +21,14 @@ public class UserResource {
     UserService userService;
 
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     public User getUser(@PathParam("id") String id) {
         return parse(userContext.getUser(), id);
     }
 
     @PATCH
     @Path("/update")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response updateUser(@PathParam("id") String id, UserProfile userProfile) {
         User actionOn = parse(userContext.getUser(), id);
         UserProfile existing = actionOn.getProfile();

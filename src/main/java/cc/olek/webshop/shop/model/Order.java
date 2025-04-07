@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Entity
-@Table(name = "Orders", indexes = @Index(name = "invoiceIdIndex", columnList = "invoiceId"))
+@Table(name = "Orders", indexes = @Index(name = "paymentIdIndex", columnList = "paymentId"))
 public class Order extends WebshopEntity {
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)

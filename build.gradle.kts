@@ -31,7 +31,6 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm")
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("com.stripe:stripe-java:28.4.0")
-    implementation("io.quarkus:quarkus-kubernetes-config")
     implementation("io.quarkus:quarkus-mailer")
     implementation("io.quarkus:quarkus-qute")
     implementation("dev.samstevens.totp:totp:1.7.1")

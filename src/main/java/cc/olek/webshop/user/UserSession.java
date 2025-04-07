@@ -19,6 +19,7 @@ public class UserSession extends PanacheEntity {
     private String cookieSession; // only used for browser clients
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "targetUser")
     public User user;
     public Date expiresAt;
     public String ipAddress;

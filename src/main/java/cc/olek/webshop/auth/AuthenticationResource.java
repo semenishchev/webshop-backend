@@ -18,6 +18,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 @Path("/auth")
@@ -29,6 +30,7 @@ public class AuthenticationResource {
 
     @Inject
     AuthenticationService authenticationService;
+
     @Inject
     UserService userService;
 
@@ -37,14 +39,16 @@ public class AuthenticationResource {
 
     @POST
     @Path("/login")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(AuthenticationData data) {
         UserSession session = authenticationService.authenticate(data.isBrowserSession, data.email, data.password, data.toptPassword.orElse(null));
         if(session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("TOPT").build();
+            return Response.status(Response.Status.NOT_ACCEPTABLE)
+                .entity(Map.of())
+                .build();
         }
-        Response.ResponseBuilder response = Response.ok().entity(session.sessionText);
+        Response.ResponseBuilder response = Response.ok().entity(Map.of("session", session.sessionText, "expiresAt", session.expiresAt));
         if(data.isBrowserSession) {
             boolean localhost = domain.equals("localhost");
             response.cookie(

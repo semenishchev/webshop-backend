@@ -31,7 +31,7 @@ public class StripePaymentProcessor implements PaymentService {
         params.setMode(SessionCreateParams.Mode.PAYMENT);
         params.setClientReferenceId(order.customer.id.toString());
         params.setCustomerEmail(order.customer.getEmail());
-        params.setReturnUrl(config.getReturnUrl());
+        params.setReturnUrl(config.returnUrl());
         params.putMetadata("orderId", String.valueOf(order.id));
         for (Map.Entry<Product, Integer> entry : order.products.entrySet()) {
             var productEntryBuilder = SessionCreateParams.LineItem.builder()
