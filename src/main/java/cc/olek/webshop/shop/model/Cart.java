@@ -28,7 +28,7 @@ public class Cart {
             Map.Entry<Product, Integer> entry = iterator.next();
             Product product = entry.getKey();
             int amount = entry.getValue();
-            price += amount * product.basePrice;
+            price += amount * product.price;
             infoBuilder.append(amount).append("x ").append(product.name);
             if(iterator.hasNext()) {
                 infoBuilder.append("\n");

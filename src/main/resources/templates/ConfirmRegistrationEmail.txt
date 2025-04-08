@@ -1,0 +1,9 @@
+Hello,
+Thanks for signing in.
+
+Please copy this link and paste it into your browser in order to verify your email:
+{link}
+
+If you didn't request this email, you can safely ignore it.
+
+Olek Webshop

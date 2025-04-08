@@ -1,15 +1,13 @@
 package cc.olek.webshop.auth;
 
+import cc.olek.webshop.service.EmailService;
 import cc.olek.webshop.user.UserContext;
 import cc.olek.webshop.user.UserService;
 import cc.olek.webshop.user.UserSession;
 import io.quarkus.security.Authenticated;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
@@ -33,6 +31,9 @@ public class AuthenticationResource {
 
     @Inject
     UserService userService;
+
+    @Inject
+    EmailService emails;
 
     @ConfigProperty(name = "api.domain")
     String domain;
@@ -65,6 +66,17 @@ public class AuthenticationResource {
         return response.build();
     }
 
+    @GET
+    @Path("/confirm-email")
+    public Response confirmRegistration(@QueryParam("token") String confirmationToken) {
+//        if (userService.findUserByEmail(data.email) != null) {
+//            return Response.status(Response.Status.CONFLICT).build();
+//        }
+//
+//        authenticationService.initiateRegistration();
+        return Response.ok().entity(confirmationToken).build();
+    }
+
     @POST
     @Path("/register")
     @Produces(MediaType.TEXT_PLAIN)
@@ -74,8 +86,8 @@ public class AuthenticationResource {
             return Response.status(Response.Status.CONFLICT).build();
         }
 
-        userService.createUser(data.email, data.password);
-        return Response.status(Response.Status.CREATED).build();
+        emails.sendEmailVerification(data.email, "https://" + domain + "/auth/confirm-email?token=test123");
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
     @POST

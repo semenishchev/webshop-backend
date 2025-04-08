@@ -38,7 +38,7 @@ public class StripePaymentProcessor implements PaymentService {
                 .setPriceData(SessionCreateParams.LineItem.PriceData
                     .builder()
                     .setProduct(entry.getKey().name)
-                    .setUnitAmount((long) entry.getKey().basePrice)
+                    .setUnitAmount((long) entry.getKey().price)
                     .setCurrency("EUR")
                     .build()
                 )

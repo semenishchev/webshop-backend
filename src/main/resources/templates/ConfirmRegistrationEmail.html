@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Email Confirmation</title>
+    <style>
+        body {
+            background-color: #f0f8ff;
+            color: #363636;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: #ffffff;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .link {
+            margin-top: 20px;
+            word-break: break-all;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Confirm your email</h2>
+    <p>Hello,</p>
+    <p>Thanks for signing up. Please confirm your email address by clicking the button below:</p>
+
+    <a href="{link}" class="button">Confirm Email</a>
+
+    <p>If the button doesn't work, copy and paste the link below into your browser:</p>
+    <p class="link">{link}</p>
+
+    <p>If you didn't request this email, you can safely ignore it.</p>
+</div>
+</body>
+</html>
