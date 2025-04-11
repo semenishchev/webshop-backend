@@ -4,6 +4,7 @@ import cc.olek.webshop.service.EmailService;
 import cc.olek.webshop.user.UserContext;
 import cc.olek.webshop.user.UserService;
 import cc.olek.webshop.user.UserSession;
+import cc.olek.webshop.util.JResponse;
 import io.quarkus.security.Authenticated;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
@@ -13,11 +14,13 @@ import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Path("/auth")
 @RunOnVirtualThread
@@ -38,12 +41,21 @@ public class AuthenticationResource {
     @ConfigProperty(name = "api.domain")
     String domain;
 
+    @ConfigProperty(name = "frontend.email-confirmation-redirect")
+    String emailConfirmationRedirect;
+
     @POST
     @Path("/login")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(AuthenticationData data) {
-        UserSession session = authenticationService.authenticate(data.isBrowserSession, data.email, data.password, data.toptPassword.orElse(null));
+        String randomCookie = UUID.randomUUID().toString() + UUID.randomUUID();
+        UserSession session = authenticationService.authenticate(
+            data.email,
+            data.password,
+            data.toptPassword.orElse(null),
+            data.isBrowserSession() ? randomCookie : null
+        );
         if(session == null) {
             return Response.status(Response.Status.NOT_ACCEPTABLE)
                 .entity(Map.of())
@@ -51,17 +63,19 @@ public class AuthenticationResource {
         }
         Response.ResponseBuilder response = Response.ok().entity(Map.of("session", session.sessionText, "expiresAt", session.expiresAt));
         if(data.isBrowserSession) {
-            boolean localhost = domain.equals("localhost");
-            response.cookie(
-                new NewCookie.Builder("ws-session_id")
-                    .expiry(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)))
-                    .httpOnly(true)
-                    .secure(true)
-                    .comment("Session")
-                    .sameSite(localhost ? NewCookie.SameSite.NONE : NewCookie.SameSite.STRICT)
-                    .domain(localhost ? "localhost" : "." + domain)
-                    .build()
-            );
+            boolean localhost = domain.startsWith("localhost");
+            var builder = new NewCookie.Builder("ws-session_id")
+                .expiry(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)))
+                .httpOnly(true)
+                .comment("Session")
+                .path("/")
+                .value(randomCookie)
+                .sameSite(localhost ? NewCookie.SameSite.LAX : NewCookie.SameSite.STRICT)
+                .domain(localhost ? "localhost" : "." + domain);
+            if(!localhost) {
+                builder.secure(true);
+            }
+            response.cookie(builder.build());
         }
         return response.build();
     }
@@ -69,12 +83,20 @@ public class AuthenticationResource {
     @GET
     @Path("/confirm-email")
     public Response confirmRegistration(@QueryParam("token") String confirmationToken) {
-//        if (userService.findUserByEmail(data.email) != null) {
-//            return Response.status(Response.Status.CONFLICT).build();
-//        }
-//
-//        authenticationService.initiateRegistration();
-        return Response.ok().entity(confirmationToken).build();
+        AuthenticationService.RegistrationRequest request = authenticationService.fetchRegistrationRequest(confirmationToken);
+        if(request == null) return Response.status(Response.Status.NOT_FOUND).build();
+        authenticationService.confirmRegistration(request);
+
+        return JResponse.json(201, "Created successfully");
+    }
+
+    @GET
+    @Path("/check-email")
+    public Response checkEmailVerification(@QueryParam("email") String email) {
+        if (authenticationService.hasRegistrationVerification(email)) {
+            return Response.seeOther(URI.create(emailConfirmationRedirect)).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 
     @POST
@@ -85,8 +107,11 @@ public class AuthenticationResource {
         if (userService.findUserByEmail(data.email) != null) {
             return Response.status(Response.Status.CONFLICT).build();
         }
-
-        emails.sendEmailVerification(data.email, "https://" + domain + "/auth/confirm-email?token=test123");
+        AuthenticationService.RegistrationRequest request = authenticationService.initiateRegistration(data.email, data.password);
+        if(request == null) {
+            return Response.status(Response.Status.CONFLICT).build(); // sanity check
+        }
+        emails.sendEmailVerification(data.email, "https://" + domain + "/auth/confirm-email?token=" + request.emailConfirmationToken());
         return Response.status(Response.Status.NO_CONTENT).build();
     }
 

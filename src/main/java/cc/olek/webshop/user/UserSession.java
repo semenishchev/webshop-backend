@@ -39,4 +39,8 @@ public class UserSession extends PanacheEntity {
     public boolean isCookiePresent() {
         return cookieSession != null;
     }
+
+    public String getCookieSession() {
+        return cookieSession;
+    }
 }

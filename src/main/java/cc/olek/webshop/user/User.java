@@ -47,6 +47,10 @@ public class User extends WebshopEntity {
         this.hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
+    public void setPasswordRaw(String password) {
+        this.hashedPassword = password;
+    }
+
     public void setEmail(String email) {
         this.email = email;
     }

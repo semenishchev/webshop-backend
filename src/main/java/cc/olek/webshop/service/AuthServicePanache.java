@@ -7,6 +7,9 @@ import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserService;
 import dev.samstevens.totp.exceptions.QrGenerationException;
 import io.quarkus.logging.Log;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.keys.KeyCommands;
+import io.quarkus.redis.datasource.value.SetArgs;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.vertx.core.http.HttpServerRequest;
@@ -16,6 +19,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.Context;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -36,22 +40,26 @@ public class AuthServicePanache implements AuthenticationService {
     @Inject
     TwoFactorService twoFactorService;
 
+    @Inject
+    RedisDataSource redis;
+
     @Override
     @Transactional
-    public UserSession authenticate(boolean doubleAuth, String email, String password, String twoFactorCode) {
+    public UserSession authenticate(String email, String password, String twoFactorCode, String cookie) {
         User user = userService.findUserByEmail(email);
-        // return null to give out generic unauthorised message
+
         if (user == null) {
             throw new UnauthorizedException("Invalid credentials");
         }
+
         if (!user.verifyPassword(password)) {
             throw new UnauthorizedException("Invalid credentials");
         }
-        if (UserSession.count("user = ?1 and expired = false", user) >= config.maxSessionsPerUser()) {
+        if (UserSession.count("user = ?1 and expiresAt < CURRENT_TIMESTAMP", user) >= config.maxSessionsPerUser()) {
             throw new UnauthorizedException("Too many sessions per User");
         }
         String usedIpAddr = request.remoteAddress().host();
-        if (UserSession.count("ipAddress = ?1 and expired = false", usedIpAddr) >= config.maxSessionsPerIp()) {
+        if (UserSession.count("ipAddress = ?1 and expiresAt < CURRENT_TIMESTAMP", usedIpAddr) >= config.maxSessionsPerIp()) {
             throw new UnauthorizedException("Too many sessions per IP");
         }
 
@@ -64,13 +72,69 @@ public class AuthServicePanache implements AuthenticationService {
         UserSession session = new UserSession();
         session.user = user;
         session.sessionText = UUID.randomUUID().toString();
-        if(doubleAuth) {
-            session.setCookieSession(UUID.randomUUID().toString() + UUID.randomUUID()); // its random enough
+        if(cookie != null) {
+            session.setCookieSession(cookie);
         }
         session.expiresAt = Date.from(Instant.now().plus(30, ChronoUnit.DAYS));
         session.ipAddress = usedIpAddr;
         session.persist();
         return session;
+    }
+
+    @Override
+    public boolean hasRegistrationVerification(String email) {
+        return redis.key().exists("e_registration_request_" + email);
+    }
+
+    @Override
+    public RegistrationRequest initiateRegistration(String email, String password) {
+        String emailKey = "e_registration_request_" + email;
+        if (redis.key().exists(emailKey)) {
+            return null;
+        }
+        if(userService.findUserByEmail(email) != null) {
+            return null;
+        }
+
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+        String token = UUID.randomUUID().toString();
+        RegistrationRequest request = new RegistrationRequest(
+            email,
+            hashedPassword,
+            token
+        );
+
+        String tokenKey = "t_registration_request_" + token;
+        redis.value(RegistrationRequest.class).set(
+            emailKey,
+            request,
+            new SetArgs().ex(600) // after 10 minutes
+        );
+        redis.value(RegistrationRequest.class).set(
+            tokenKey,
+            request,
+            new SetArgs().ex(600) // after 10 minutes
+        );
+        return request;
+    }
+
+    @Override
+    public RegistrationRequest fetchRegistrationRequest(String token) {
+        return redis.value(RegistrationRequest.class).get("t_registration_request_" + token);
+    }
+
+    @Override
+    public void terminateRegistration(String email) {
+        RegistrationRequest request = redis.value(RegistrationRequest.class).getdel("e_registration_request_" + email);
+        if(request == null) return;
+        redis.key().del("t_registration_request_" + request.emailConfirmationToken());
+    }
+
+    @Override
+    public void confirmRegistration(RegistrationRequest request) {
+        KeyCommands<String> keys = redis.key();
+        userService.createUserRaw(request.email(), request.hashedPassword());
+        keys.del("t_registration_request_" + request.emailConfirmationToken(), "e_registration_request_" + request.email());
     }
 
     @Override
