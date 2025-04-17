@@ -13,4 +13,6 @@ public interface ProductService {
     List<Product> getProductsByCategory(ProductCategory category, ProductSorting sorting, int begin, int limit);
     void registerNewProduct(Product product);
     void updateProduct(Product product);
+
+    Product getProductById(int id);
 }

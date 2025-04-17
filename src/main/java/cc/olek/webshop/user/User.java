@@ -22,7 +22,7 @@ public class User extends WebshopEntity {
     private UserProfile profile;
 
     @Embedded
-    private Cart cart;
+    private Cart cart = new Cart();
 
     @JsonIgnore
     private String hashedPassword;
@@ -67,9 +67,6 @@ public class User extends WebshopEntity {
     }
 
     public Cart getCart() {
-        if(this.cart == null) {
-            return this.cart = new Cart();
-        }
         return cart;
     }
 

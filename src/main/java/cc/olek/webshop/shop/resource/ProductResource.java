@@ -4,10 +4,7 @@ import cc.olek.webshop.shop.model.Product;
 import cc.olek.webshop.shop.model.ProductSorting;
 import cc.olek.webshop.shop.service.ProductService;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import java.util.List;
@@ -21,9 +18,9 @@ public class ProductResource {
     ProductService productService;
 
     @GET
-    @Path("/get")
+    @Path("/search")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Product> getProducts(
+    public List<Product> searchProducts(
         @QueryParam("category") String category,
         @QueryParam("sorting") ProductSorting sorting,
         @QueryParam("page") int page,
@@ -35,5 +32,15 @@ public class ProductResource {
 
         productService.getProductsByCategory(productService.getCategory(category), sorting, PRODUCTS_PER_PAGE * page, PRODUCTS_PER_PAGE);
         return List.of();
+    }
+
+    @GET
+    @Path("/get")
+    public Product getProduct(@QueryParam("id") int id) {
+        if(id <= 0) {
+            throw new NotFoundException();
+        }
+
+        return productService.getProductById(id);
     }
 }

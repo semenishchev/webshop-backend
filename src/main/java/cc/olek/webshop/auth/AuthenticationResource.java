@@ -63,21 +63,28 @@ public class AuthenticationResource {
         }
         Response.ResponseBuilder response = Response.ok().entity(Map.of("session", session.sessionText, "expiresAt", session.expiresAt));
         if(data.isBrowserSession) {
-            boolean localhost = domain.startsWith("localhost");
-            var builder = new NewCookie.Builder("ws-session_id")
-                .expiry(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)))
-                .httpOnly(true)
-                .comment("Session")
-                .path("/")
-                .value(randomCookie)
-                .sameSite(localhost ? NewCookie.SameSite.LAX : NewCookie.SameSite.STRICT)
-                .domain(localhost ? "localhost" : "." + domain);
-            if(!localhost) {
-                builder.secure(true);
-            }
-            response.cookie(builder.build());
+            response.cookie(createAuthCookie(randomCookie, false));
         }
         return response.build();
+    }
+
+    private NewCookie createAuthCookie(String randomCookie, boolean clear) {
+        boolean localhost = domain.startsWith("localhost");
+        var builder = new NewCookie.Builder("ws-session_id")
+            .expiry(clear ? new Date(0) : Date.from(Instant.now().plus(30, ChronoUnit.DAYS)))
+            .httpOnly(true)
+            .comment(null)
+            .path("/")
+            .value(randomCookie)
+            .sameSite(localhost ? NewCookie.SameSite.LAX : NewCookie.SameSite.STRICT)
+            .domain(null);
+        if(clear) {
+            builder.maxAge(0);
+        }
+        if(!localhost) {
+            builder.secure(true);
+        }
+        return builder.build();
     }
 
     @GET
@@ -124,7 +131,9 @@ public class AuthenticationResource {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
         authenticationService.logout(session);
-        return Response.ok().build();
+        return Response.ok()
+            .cookie(createAuthCookie("", true))
+            .build();
     }
 
     public record AuthenticationData(String email, boolean isBrowserSession, String password, Optional<String> toptPassword) {}
