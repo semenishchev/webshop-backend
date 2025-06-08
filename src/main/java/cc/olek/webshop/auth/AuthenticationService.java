@@ -1,8 +1,8 @@
 package cc.olek.webshop.auth;
 
-import cc.olek.webshop.service.AuthServicePanache;
 import cc.olek.webshop.service.TwoFactorService;
 import cc.olek.webshop.user.User;
+import cc.olek.webshop.user.UserProfile;
 import cc.olek.webshop.user.UserSession;
 
 public interface AuthenticationService {
@@ -20,11 +20,11 @@ public interface AuthenticationService {
      */
     UserSession authenticate(String email, String password, String twoFactor, String cookie);
 
-    RegistrationRequest initiateRegistration(String email, String password);
-    RegistrationRequest fetchRegistrationRequest(String token);
+    ProcessedRegistrationRequest initiateRegistration(String email, String password, UserProfile profile);
+    ProcessedRegistrationRequest fetchRegistrationRequest(String token);
     boolean hasRegistrationVerification(String email);
     void terminateRegistration(String email);
-    void confirmRegistration(RegistrationRequest request);
+    void confirmRegistration(ProcessedRegistrationRequest request);
 
     TwoFactorService.InitiationData initiateTwoFactorAuthentication(User user);
     void terminateTwoFactorInitiation(User user);
@@ -36,5 +36,6 @@ public interface AuthenticationService {
     UserSession findSession(String sessionText);
     void updateIpAddress(UserSession session, String ipAddress);
 
-    record RegistrationRequest(String email, String hashedPassword, String emailConfirmationToken) {}
+    record ProcessedRegistrationRequest(String email, String hashedPassword, UserProfile profile, String emailConfirmationToken) {}
+    record RegistrationRequest(String email, String password, UserProfile profile) {}
 }

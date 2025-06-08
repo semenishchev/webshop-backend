@@ -55,8 +55,8 @@ public class AuthenticationMiddleware implements ContainerRequestFilter {
             return;
         }
 
-        if(auth.startsWith("Basic ")) {
-            auth = auth.substring("Basic ".length());
+        if(auth.startsWith("Bearer ")) {
+            auth = auth.substring("Bearer ".length());
         }
 
         UserSession session = authenticationService.findSession(auth);

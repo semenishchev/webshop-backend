@@ -1,17 +1,26 @@
 package cc.olek.webshop.shop.model;
 
 import cc.olek.webshop.entity.WebshopEntity;
+import cc.olek.webshop.entity.WebshopEntityBase;
 import cc.olek.webshop.user.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.IdGeneratorType;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.id.UUIDGenerator;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Entity
 @Table(name = "Orders", indexes = @Index(name = "paymentIdIndex", columnList = "paymentId"))
-public class Order extends WebshopEntity {
+public class Order extends WebshopEntityBase {
+    @Id
+    @GeneratedValue
+    public UUID id;
+
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
     public User customer;
@@ -19,8 +28,7 @@ public class Order extends WebshopEntity {
     @Enumerated(EnumType.STRING)
     public Status status = Status.CREATED;
 
-    @ManyToOne
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @Embedded
     public DeliveryAddress deliveryAddress;
 
     @Embedded

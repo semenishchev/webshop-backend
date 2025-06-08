@@ -1,6 +1,7 @@
 package cc.olek.webshop.service;
 
 import cc.olek.webshop.user.User;
+import cc.olek.webshop.user.UserProfile;
 import cc.olek.webshop.user.UserService;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,10 +22,11 @@ public class UserServicePanache implements UserService {
 
     @Transactional
     @Override
-    public User createUserRaw(String email, String rawPassword) {
+    public User createUserRaw(String email, String rawPassword, UserProfile profile) {
         User user = new User();
         user.setEmail(email);
         user.setPasswordRaw(rawPassword);
+        user.getProfile().merge(profile);
         user.persist();
         Log.infof("Registered user %s", email);
         return user;

@@ -80,7 +80,7 @@ public class StripePaymentProcessor implements PaymentService {
             Log.errorf(e, "Failed to create session for order id: %i user: %i %s", order.id, order.customer.id, order.customer.getEmail());
             throw new RuntimeException(e);
         }
-        return new OrderService.OrderPlacement(session.getUrl(), session.getId());
+        return new OrderService.OrderPlacement(session.getUrl(), session.getId(), order);
     }
 
     @Override

@@ -1,16 +1,12 @@
 package cc.olek.webshop.entity;
 
-import cc.olek.webshop.Webshop;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 
-public abstract class WebshopEntity extends PanacheEntity {
-    @Override
-    public String toString() {
-        try {
-            return Webshop.JSON.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
+@MappedSuperclass
+public class WebshopEntity extends WebshopEntityBase {
+    @Id
+    @GeneratedValue
+    public Long id;
 }

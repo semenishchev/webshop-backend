@@ -90,11 +90,11 @@ public class AuthenticationResource {
     @GET
     @Path("/confirm-email")
     public Response confirmRegistration(@QueryParam("token") String confirmationToken) {
-        AuthenticationService.RegistrationRequest request = authenticationService.fetchRegistrationRequest(confirmationToken);
+        AuthenticationService.ProcessedRegistrationRequest request = authenticationService.fetchRegistrationRequest(confirmationToken);
         if(request == null) return Response.status(Response.Status.NOT_FOUND).build();
         authenticationService.confirmRegistration(request);
 
-        return JResponse.json(201, "Created successfully");
+        return Response.seeOther(URI.create(emailConfirmationRedirect)).build();
     }
 
     @GET
@@ -110,15 +110,19 @@ public class AuthenticationResource {
     @Path("/register")
     @Produces(MediaType.TEXT_PLAIN)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response register(AuthenticationData data) {
-        if (userService.findUserByEmail(data.email) != null) {
+    public Response register(AuthenticationService.RegistrationRequest data) {
+        if (userService.findUserByEmail(data.email()) != null) {
             return Response.status(Response.Status.CONFLICT).build();
         }
-        AuthenticationService.RegistrationRequest request = authenticationService.initiateRegistration(data.email, data.password);
+        AuthenticationService.ProcessedRegistrationRequest request = authenticationService.initiateRegistration(
+            data.email(),
+            data.password(),
+            data.profile()
+        );
         if(request == null) {
             return Response.status(Response.Status.CONFLICT).build(); // sanity check
         }
-        emails.sendEmailVerification(data.email, "https://" + domain + "/auth/confirm-email?token=" + request.emailConfirmationToken());
+        emails.sendEmailVerification(data.email(), "https://" + domain + "/auth/confirm-email?token=" + request.emailConfirmationToken());
         return Response.status(Response.Status.NO_CONTENT).build();
     }
 

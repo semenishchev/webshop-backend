@@ -1,10 +1,7 @@
-import com.webcohesion.enunciate.Enunciate
-import com.webcohesion.enunciate.gradle.EnunciateTask
 
 plugins {
     java
     id("io.quarkus")
-    id("com.webcohesion.enunciate") version "2.18.0"
 }
 
 repositories {
@@ -35,6 +32,7 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("com.stripe:stripe-java:28.4.0")
     implementation("com.nimbusds:nimbus-jose-jwt:latest")
+    implementation("io.quarkus:quarkus-hibernate-search-orm-elasticsearch")
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
@@ -54,9 +52,4 @@ tasks.withType<Test> {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
-}
-
-tasks.withType<EnunciateTask> {
-    configurationFileName = "src/main/resources/enunciate.xml"
-    sourcepath("src/main/java")
 }

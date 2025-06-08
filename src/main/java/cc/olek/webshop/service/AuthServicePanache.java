@@ -2,6 +2,7 @@ package cc.olek.webshop.service;
 
 import cc.olek.webshop.auth.AuthenticationService;
 import cc.olek.webshop.config.UsersConfig;
+import cc.olek.webshop.user.UserProfile;
 import cc.olek.webshop.user.UserSession;
 import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserService;
@@ -87,7 +88,7 @@ public class AuthServicePanache implements AuthenticationService {
     }
 
     @Override
-    public RegistrationRequest initiateRegistration(String email, String password) {
+    public ProcessedRegistrationRequest initiateRegistration(String email, String password, UserProfile profile) {
         String emailKey = "e_registration_request_" + email;
         if (redis.key().exists(emailKey)) {
             return null;
@@ -98,19 +99,20 @@ public class AuthServicePanache implements AuthenticationService {
 
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
         String token = UUID.randomUUID().toString();
-        RegistrationRequest request = new RegistrationRequest(
+        ProcessedRegistrationRequest request = new ProcessedRegistrationRequest(
             email,
             hashedPassword,
+            profile,
             token
         );
 
         String tokenKey = "t_registration_request_" + token;
-        redis.value(RegistrationRequest.class).set(
+        redis.value(ProcessedRegistrationRequest.class).set(
             emailKey,
             request,
             new SetArgs().ex(600) // after 10 minutes
         );
-        redis.value(RegistrationRequest.class).set(
+        redis.value(ProcessedRegistrationRequest.class).set(
             tokenKey,
             request,
             new SetArgs().ex(600) // after 10 minutes
@@ -119,21 +121,21 @@ public class AuthServicePanache implements AuthenticationService {
     }
 
     @Override
-    public RegistrationRequest fetchRegistrationRequest(String token) {
-        return redis.value(RegistrationRequest.class).get("t_registration_request_" + token);
+    public ProcessedRegistrationRequest fetchRegistrationRequest(String token) {
+        return redis.value(ProcessedRegistrationRequest.class).get("t_registration_request_" + token);
     }
 
     @Override
     public void terminateRegistration(String email) {
-        RegistrationRequest request = redis.value(RegistrationRequest.class).getdel("e_registration_request_" + email);
+        ProcessedRegistrationRequest request = redis.value(ProcessedRegistrationRequest.class).getdel("e_registration_request_" + email);
         if(request == null) return;
         redis.key().del("t_registration_request_" + request.emailConfirmationToken());
     }
 
     @Override
-    public void confirmRegistration(RegistrationRequest request) {
+    public void confirmRegistration(ProcessedRegistrationRequest request) {
         KeyCommands<String> keys = redis.key();
-        userService.createUserRaw(request.email(), request.hashedPassword());
+        userService.createUserRaw(request.email(), request.hashedPassword(), request.profile());
         keys.del("t_registration_request_" + request.emailConfirmationToken(), "e_registration_request_" + request.email());
     }
 

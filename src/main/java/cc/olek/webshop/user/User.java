@@ -1,15 +1,13 @@
 package cc.olek.webshop.user;
 
 import cc.olek.webshop.entity.WebshopEntity;
-import cc.olek.webshop.shop.model.Cart;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.mindrot.jbcrypt.BCrypt;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
@@ -21,8 +19,8 @@ public class User extends WebshopEntity {
     @Embedded
     private UserProfile profile;
 
-    @Embedded
-    private Cart cart = new Cart();
+    @ElementCollection
+    private Map<Long, Integer> cart;
 
     @JsonIgnore
     private String hashedPassword;
@@ -32,12 +30,6 @@ public class User extends WebshopEntity {
     private String twoFactorSecret;
 
     private boolean isSuperuser = false;
-
-    @ElementCollection
-    @Enumerated(EnumType.ORDINAL)
-    @CollectionTable(name = "UserPermission", joinColumns = @JoinColumn(name = "userId"))
-    @Column(name = "permission")
-    private Set<Permission> permissions = new HashSet<>();
 
     public boolean verifyPassword(String password) {
         return BCrypt.checkpw(password, this.hashedPassword);
@@ -66,15 +58,6 @@ public class User extends WebshopEntity {
         return profile;
     }
 
-    public Cart getCart() {
-        return cart;
-    }
-
-    public boolean hasPermission(Permission permission) {
-        if(this.isSuperuser) return true;
-        return this.permissions.contains(permission);
-    }
-
     public void setSuperuser(boolean flag) {
         this.isSuperuser = true;
     }
@@ -85,5 +68,13 @@ public class User extends WebshopEntity {
 
     public void setTwoFactorSecret(String twoFactorSecret) {
         this.twoFactorSecret = twoFactorSecret;
+    }
+
+    public boolean isSuperuser() {
+        return this.isSuperuser;
+    }
+
+    public Map<Long, Integer> getCart() {
+        return cart;
     }
 }

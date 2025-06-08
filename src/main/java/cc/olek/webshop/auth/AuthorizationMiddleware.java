@@ -2,7 +2,6 @@ package cc.olek.webshop.auth;
 
 import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserContext;
-import io.quarkus.security.Authenticated;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
@@ -14,7 +13,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
 @Provider
 @PreMatching
@@ -28,15 +26,15 @@ public class AuthorizationMiddleware implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) throws IOException {
         User user = userContext.getUser();
         if(user == null) return;
-        PermissionRequired requirement = resourceInfo.getResourceMethod().getAnnotation(PermissionRequired.class);
+        AdminRequired requirement = resourceInfo.getResourceMethod().getAnnotation(AdminRequired.class);
         checker: if(requirement != null) {
-            if(user.hasPermission(requirement.value())) break checker;
+            if(user.isSuperuser()) break checker;
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).build());
             return;
         }
-        requirement = resourceInfo.getResourceClass().getAnnotation(PermissionRequired.class);
+        requirement = resourceInfo.getResourceClass().getAnnotation(AdminRequired.class);
         if(requirement != null) {
-            if(user.hasPermission(requirement.value())) return;
+            if(user.isSuperuser()) return;
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).build());
         }
     }

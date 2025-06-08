@@ -8,5 +8,10 @@ import jakarta.persistence.Entity;
 public class ProductCategory extends WebshopEntity {
     @Column(length = 50)
     public String name;
-    public String iconLink;
+    public String iconUrl;
+
+    @Override
+    public String toString() {
+        return this.name;
+    }
 }

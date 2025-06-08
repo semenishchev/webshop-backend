@@ -1,27 +1,28 @@
 package cc.olek.webshop.service;
 
-import cc.olek.webshop.shop.model.Cart;
-import cc.olek.webshop.shop.model.DeliveryAddress;
-import cc.olek.webshop.shop.model.DeliveryStatus;
-import cc.olek.webshop.shop.model.Order;
+import cc.olek.webshop.shop.model.*;
 import cc.olek.webshop.shop.service.DeliveryService;
 import cc.olek.webshop.shop.service.OrderService;
 import cc.olek.webshop.shop.service.PaymentService;
+import cc.olek.webshop.shop.service.ProductService;
 import cc.olek.webshop.user.User;
 import cc.olek.webshop.user.UserContext;
 import cc.olek.webshop.util.TransactionHelper;
+import com.stripe.param.RefundCreateParams;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @ApplicationScoped
 public class OrderServicePanache implements OrderService {
-    @Inject
-    UserContext userContext;
 
     @Inject
     DeliveryService deliveryService;
@@ -30,17 +31,23 @@ public class OrderServicePanache implements OrderService {
     PaymentService paymentProcessor;
 
     @Inject
+    ProductService productService;
+
+    @Inject
     TransactionHelper transactionHelper;
 
     @Override
     @Transactional
-    public OrderPlacement placeOrder(Cart cart, DeliveryAddress address) {
-        User user = userContext.getUser();
+    public OrderPlacement placeOrder(User user, Map<Long, Integer> cart, DeliveryAddress address) {
         Order order = new Order();
         order.customer = user;
         order.status = Order.Status.CREATED;
         order.deliveryAddress = address;
-        order.products = new HashMap<>(cart.getProducts());
+        Map<Product, Integer> products = new HashMap<>();
+        for (Map.Entry<Long, Integer> entry : cart.entrySet()) {
+            products.put(productService.getProductById(entry.getKey()), entry.getValue());
+        }
+        order.products = products;
         DeliveryService.DeliveryInfo deliveryInfo = deliveryService.calculateDelivery(
             address,
             1000,
@@ -59,6 +66,11 @@ public class OrderServicePanache implements OrderService {
     @Override
     public Order findOrderByPaymentId(String paymentId) {
         return Order.find("paymentId", paymentId).firstResult();
+    }
+
+    @Override
+    public Order findOrderById(UUID orderId) {
+        return Order.findById(orderId);
     }
 
     @Override
@@ -85,8 +97,24 @@ public class OrderServicePanache implements OrderService {
 
     @Override
     @Transactional
-    public void cancelOrder(Order relativeOrder) {
-        String invoiceId = relativeOrder.paymentId;
+    public void cancelOrder(Order order) {
+        String invoiceId = order.paymentId;
+        Order.Status status = order.status;
+        if(status == null) {
+            throw new NotFoundException();
+        }
+        if(status == Order.Status.PAID) {
+            paymentProcessor.refund(order.paymentId, RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER, 100);
+            return;
+        }
+        if(status.ordinal() >= Order.Status.PAID.ordinal()) {
+            throw new BadRequestException();
+        }
         paymentProcessor.cancelSession(invoiceId);
+    }
+
+    @Override
+    public List<Order> findOrdersOfUser(User target) {
+        return Order.find("customer", target).firstResult();
     }
 }
